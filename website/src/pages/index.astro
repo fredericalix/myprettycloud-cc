@@ -1,0 +1,551 @@
+---
+import { Image } from "astro:assets";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import heroSpace from "../assets/screenshots/hero-space.png";
+import medievalWide from "../assets/screenshots/medieval-wide.png";
+import spaceCrates from "../assets/screenshots/space-crates.png";
+import workflowEditor from "../assets/screenshots/workflow-editor.png";
+import metricsDrawer from "../assets/screenshots/metrics-drawer.png";
+import quickCard from "../assets/screenshots/quick-card.png";
+
+const APP_URL = "https://myprettycloud-frontend.cleverapps.io";
+---
+
+<BaseLayout
+  title="myprettycloud — your Clever Cloud infrastructure as a living city"
+  description="Observability for Clever Cloud: every app and add-on becomes a building in a live 3D city. Status colours it, CPU spins it, traffic fills its roads — and alerting workflows set it on fire when something breaks."
+>
+  <main>
+    <header class="hero container">
+      <div class="hero__copy reveal" style="--i: 0">
+        <h1>Your cloud, rendered as a living city.</h1>
+        <p class="hero__lede">
+          myprettycloud is observability for Clever Cloud. Every app and add-on becomes a building:
+          status colours it, CPU spins it, network traffic fills its roads — and when something
+          breaks, the building catches fire and a bell tolls.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--fill" href={APP_URL}>Open your city</a>
+          <a class="btn btn--ghost" href="/tutorial">Start the tutorial</a>
+        </div>
+      </div>
+      <figure class="hero__capture reveal" style="--i: 1">
+        <Image
+          src={heroSpace}
+          alt="A live myprettycloud space station: seven modules on a Mars-like plate under a starfield, one module burning red after a failed deployment"
+          widths={[800, 1280, 2106]}
+          sizes="(max-width: 74rem) 100vw, 74rem"
+          format="webp"
+          loading="eager"
+          fetchpriority="high"
+        />
+        <figcaption>
+          A live station, captured from the app — the fire is a real failed deployment.
+        </figcaption>
+      </figure>
+    </header>
+
+    <section class="anatomy container" aria-labelledby="anatomy-title">
+      <div class="anatomy__head">
+        <h2 id="anatomy-title">A dashboard you read like a place.</h2>
+        <p>
+          Each visual element maps to one metric. Nothing is decorative noise — if the city is
+          calm, your infrastructure is calm.
+        </p>
+      </div>
+      <figure class="anatomy__fig">
+        <Image
+          src={medievalWide}
+          alt="A medieval myprettycloud town on a hex island: market stalls with green status orbs, ruins under amber orbs, and two horse-drawn carts crossing the plain"
+          widths={[800, 1280, 2106]}
+          sizes="(max-width: 74rem) 100vw, 74rem"
+          format="webp"
+        />
+        <span class="callout" style="--x: 26%; --y: 18%;">Amber orb — a warning state</span>
+        <span class="callout" style="--x: 60%; --y: 30%;">Green — running and healthy</span>
+        <span class="callout" style="--x: 44%; --y: 64%;">Carts are live network traffic — roads get busier as requests climb</span>
+      </figure>
+    </section>
+
+    <section class="tour" aria-label="Product tour">
+      <article class="tour__block container">
+        <figure class="tour__fig">
+          <Image
+            src={spaceCrates}
+            alt="Closeup of a station module with red cargo crates stacked at its door, marking high memory usage"
+            widths={[700, 1100, 2106]}
+            sizes="(max-width: 60rem) 100vw, 60vw"
+            format="webp"
+          />
+        </figure>
+        <div class="tour__copy">
+          <h2>RAM piles up at the door.</h2>
+          <p>
+            Crates stack outside a building as its memory fills — past 90&nbsp;% it visibly
+            overflows. A separate depot grows with disk usage. You see who is full before any
+            dashboard finishes loading. Windmills and rotors spin with CPU; a ripping mill is a hot
+            service.
+          </p>
+        </div>
+      </article>
+
+      <article class="tour__block tour__block--flip container">
+        <figure class="tour__fig">
+          <Image
+            src={workflowEditor}
+            alt="The workflow graph editor: a condition node reading state == warning with a live FALSE verdict and actual value, wired through rule output to a set-monitor-state action marked SKIPPED"
+            widths={[700, 1100, 2100]}
+            sizes="(max-width: 60rem) 100vw, 60vw"
+            format="webp"
+          />
+        </figure>
+        <div class="tour__copy">
+          <h2>Draw the rule. Test it before it exists.</h2>
+          <p>
+            Alerting workflows are wired in a visual graph editor — thresholds, AND/OR groups,
+            escalations, automatic revert on recovery. Press <strong>Test</strong> at any moment,
+            even before saving: every condition shows the live value it just read and its verdict,
+            and every action shows whether it would run.
+          </p>
+          <p>
+            When a saved workflow stays silent, <strong>Diagnose</strong> traces each branch —
+            expected vs. actual, channel health, cooldown — until the reason is on screen.
+          </p>
+        </div>
+      </article>
+
+      <article class="tour__block container">
+        <figure class="tour__fig tour__fig--pair">
+          <Image
+            src={metricsDrawer}
+            alt="The building drawer on its Metrics tab, showing a CPU chart with usage spikes and pills for memory, network and disk"
+            widths={[420, 840]}
+            sizes="(max-width: 60rem) 60vw, 22rem"
+            format="webp"
+          />
+          <Image
+            src={quickCard}
+            alt="The quick card for a selected app: name, runtime, running state and live CPU and RAM sparklines"
+            widths={[300, 508]}
+            sizes="(max-width: 60rem) 40vw, 14rem"
+            format="webp"
+          />
+        </figure>
+        <div class="tour__copy">
+          <h2>Click a building for the numbers.</h2>
+          <p>
+            The picture is the summary; the drawer is the detail. CPU, memory, network and disk
+            charts over 1&nbsp;h to 30&nbsp;d, with a live mode for incident triage. Alerts also
+            reach you where you work — Slack, Discord, email, or any webhook.
+          </p>
+        </div>
+      </article>
+    </section>
+
+    <section class="steps-section container" aria-labelledby="how-title">
+      <h2 id="how-title">From sign-in to first alert in ten minutes.</h2>
+      <ol class="steps">
+        <li>
+          <span class="steps__num">1</span>
+          <h3>Sign in with Clever Cloud.</h3>
+          <p>
+            OAuth against your existing account — no separate password, tokens stored encrypted.
+            Each organisation gets its own city.
+          </p>
+        </li>
+        <li>
+          <span class="steps__num">2</span>
+          <h3>Place your buildings.</h3>
+          <p>
+            Auto-place your apps and add-ons, then make it yours: sculpt hills, lay roads the
+            traffic will follow, plant a forest. It autosaves per organisation.
+          </p>
+        </li>
+        <li>
+          <span class="steps__num">3</span>
+          <h3>Arm your workflows.</h3>
+          <p>
+            Wire conditions to actions in the graph editor, test against live state, and route
+            notifications to your channels. Recovery reverts what the alert changed.
+          </p>
+        </li>
+      </ol>
+      <p class="steps-section__more">
+        The <a href="/tutorial">full tutorial</a> walks every step with the real UI.
+      </p>
+    </section>
+
+    <section class="mcp container" aria-labelledby="mcp-title">
+      <div class="mcp__copy">
+        <h2 id="mcp-title">Let your AI assistant run the watch.</h2>
+        <p>
+          myprettycloud speaks the <strong>Model Context Protocol</strong>. Generate a Bearer token
+          in Settings and your assistant can read monitor states and author workflows on your
+          behalf — your alerting rules, written in conversation.
+        </p>
+      </div>
+      <div class="mcp__code">
+        <p class="mcp__code-label">MCP server</p>
+        <pre><code>{`{
+  "mcpServers": {
+    "myprettycloud": {
+      "url": "${APP_URL}/mcp",
+      "headers": { "Authorization": "Bearer <your token>" }
+    }
+  }
+}`}</code></pre>
+      </div>
+    </section>
+
+    <section class="cta container">
+      <h2>The city is already there. It's yours.</h2>
+      <p>Sign in with your Clever Cloud account — your apps become buildings on first load.</p>
+      <a class="btn btn--fill cta__btn" href={APP_URL}>Open your city</a>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  /* Hero — left-biased copy, capture below, one orchestrated entrance */
+  .hero {
+    padding-block: 9.5rem var(--space-2xl);
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .hero__copy {
+    max-width: 44rem;
+  }
+
+  .hero__copy h1 {
+    font-size: var(--text-display);
+    line-height: 1.02;
+  }
+
+  .hero__lede {
+    margin-block: var(--space-lg) var(--space-xl);
+    font-size: var(--text-md);
+    color: var(--color-ink-2);
+    max-width: 38rem;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .hero__capture {
+    margin: 0;
+  }
+
+  .hero__capture img {
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 80px -40px oklch(8% 0.05 5 / 0.9);
+  }
+
+  .hero__capture figcaption {
+    margin-block-start: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-muted);
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: reveal var(--dur-long) var(--ease-out) forwards;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+
+  @keyframes reveal {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Anatomy — annotated screenshot */
+  .anatomy {
+    padding-block: var(--space-3xl) var(--space-2xl);
+  }
+
+  .anatomy__head {
+    max-width: 40rem;
+    margin-block-end: var(--space-xl);
+  }
+
+  .anatomy__head h2 {
+    font-size: var(--text-2xl);
+    margin-block-end: var(--space-sm);
+  }
+
+  .anatomy__head p {
+    color: var(--color-ink-2);
+  }
+
+  .anatomy__fig {
+    position: relative;
+    margin: 0;
+  }
+
+  .anatomy__fig img {
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+  }
+
+  .callout {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    max-width: 17rem;
+    background: color-mix(in oklch, var(--color-paper) 88%, transparent);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-left: 2px solid var(--color-accent-bright);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2xs) var(--space-sm);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    color: var(--color-ink);
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .anatomy__fig.is-seen .callout {
+    animation: reveal var(--dur-long) var(--ease-out) forwards;
+  }
+
+  .anatomy__fig.is-seen .callout:nth-of-type(2) {
+    animation-delay: 140ms;
+  }
+
+  .anatomy__fig.is-seen .callout:nth-of-type(3) {
+    animation-delay: 280ms;
+  }
+
+  /* Tour — alternating screenshot blocks, the screenshots are the dividers */
+  .tour {
+    display: grid;
+    gap: var(--space-4xl);
+    padding-block: var(--space-3xl);
+  }
+
+  .tour__block {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--space-2xl);
+    align-items: center;
+  }
+
+  .tour__block--flip {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  .tour__block--flip .tour__fig {
+    order: 2;
+  }
+
+  .tour__fig {
+    margin: 0;
+  }
+
+  .tour__fig img {
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+  }
+
+  .tour__fig--pair {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-md);
+    align-items: start;
+  }
+
+  .tour__copy h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-sm);
+  }
+
+  .tour__copy p {
+    color: var(--color-ink-2);
+    margin-block: var(--space-sm);
+  }
+
+  .tour__copy strong {
+    color: var(--color-ink);
+  }
+
+  /* Steps — genuinely ordinal, copper numerals */
+  .steps-section {
+    padding-block: var(--space-3xl);
+    border-top: var(--rule-hair) solid var(--color-rule-2);
+  }
+
+  .steps-section h2 {
+    font-size: var(--text-2xl);
+    max-width: 30ch;
+    margin-block-end: var(--space-2xl);
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-xl);
+  }
+
+  .steps li {
+    border-top: 2px solid var(--color-rule);
+    padding-block-start: var(--space-md);
+  }
+
+  .steps__num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--color-copper);
+  }
+
+  .steps h3 {
+    font-size: var(--text-md);
+    margin-block: var(--space-2xs) var(--space-xs);
+  }
+
+  .steps p {
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+
+  .steps-section__more {
+    margin-block-start: var(--space-xl);
+    color: var(--color-ink-2);
+  }
+
+  .steps-section__more a {
+    color: var(--color-accent-bright);
+  }
+
+  /* MCP — copy + typographically framed code, no fake window chrome */
+  .mcp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2xl);
+    align-items: center;
+    padding-block: var(--space-3xl);
+  }
+
+  .mcp__copy h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-sm);
+  }
+
+  .mcp__copy p {
+    color: var(--color-ink-2);
+  }
+
+  .mcp__copy strong {
+    color: var(--color-ink);
+  }
+
+  .mcp__code-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+    padding-block-end: var(--space-2xs);
+    margin-block-end: var(--space-sm);
+  }
+
+  .mcp__code pre {
+    margin: 0;
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  /* Closing CTA — single button, left-biased */
+  .cta {
+    padding-block: var(--space-3xl) var(--space-2xl);
+  }
+
+  .cta h2 {
+    font-size: var(--text-2xl);
+    max-width: 24ch;
+  }
+
+  .cta p {
+    color: var(--color-ink-2);
+    margin-block: var(--space-sm) var(--space-lg);
+  }
+
+  @media (max-width: 60rem) {
+    .hero {
+      padding-block-start: 7.5rem;
+    }
+
+    .tour__block,
+    .tour__block--flip {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-lg);
+    }
+
+    .tour__block--flip .tour__fig {
+      order: 0;
+    }
+
+    .tour {
+      gap: var(--space-3xl);
+    }
+
+    .steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mcp {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-lg);
+    }
+
+    .callout {
+      position: static;
+      display: block;
+      margin-block-start: var(--space-xs);
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .anatomy__fig.is-seen .callout {
+      animation-duration: 150ms;
+    }
+  }
+</style>
+
+<script>
+  // One-shot callout reveal when the anatomy figure enters the viewport.
+  const fig = document.querySelector(".anatomy__fig");
+  if (fig) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          fig.classList.add("is-seen");
+          io.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(fig);
+  }
+</script>

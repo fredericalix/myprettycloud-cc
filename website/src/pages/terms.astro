@@ -1,0 +1,168 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const APP_URL = "https://myprettycloud-frontend.cleverapps.io";
+const updated = "June 2026";
+---
+
+<BaseLayout
+  title="Terms & privacy · myprettycloud"
+  description="myprettycloud collects no personal data, runs no tracking, and is hosted entirely on Clever Cloud, a European sovereign host."
+>
+  <main class="terms container">
+    <header class="terms__head">
+      <p class="terms__eyebrow">Last updated · {updated}</p>
+      <h1>Terms &amp; privacy</h1>
+      <p class="terms__lede">
+        The short version: we don't want your personal data, we don't track you, and everything
+        runs on a European sovereign host. Here it is in full — it's deliberately brief.
+      </p>
+    </header>
+
+    <section class="terms__block" aria-labelledby="data-title">
+      <h2 id="data-title">No personal data</h2>
+      <p>
+        myprettycloud does not collect, store, or sell personal data. There is no advertising, no
+        analytics, no tracking pixels, no third-party trackers, and no profiling.
+      </p>
+      <p>To do its job, the app only ever handles two operational things:</p>
+      <ul>
+        <li>
+          <strong>Your Clever Cloud access token</strong> — obtained when you sign in with Clever
+          Cloud, stored encrypted, and used solely to read the state of <em>your own</em>
+          infrastructure. We never use it for anything else, and you can revoke it from Clever
+          Cloud at any time.
+        </li>
+        <li>
+          <strong>Your city layout and workflows</strong> — the buildings you place and the
+          alerting rules you write, so the app can show your city and run your rules. That's
+          configuration you created, not data about you.
+        </li>
+      </ul>
+      <p>
+        We don't sign you up for anything, send you marketing, or share any of the above with third
+        parties.
+      </p>
+    </section>
+
+    <section class="terms__block" aria-labelledby="host-title">
+      <h2 id="host-title">Hosted on Clever Cloud, a sovereign host</h2>
+      <p>
+        The entire product — the backend, the web app, and this site — is hosted on
+        <a href="https://www.clever-cloud.com" target="_blank" rel="noopener noreferrer"
+          >Clever Cloud</a
+        >, a French, European cloud provider. Your data stays within that sovereign infrastructure;
+        it is not handed off to non-European platforms.
+      </p>
+    </section>
+
+    <section class="terms__block" aria-labelledby="use-title">
+      <h2 id="use-title">Using the service</h2>
+      <p>
+        myprettycloud is provided as-is, without warranty, as a way to visualise and monitor your
+        Clever Cloud infrastructure. It is not affiliated with the 3D asset authors it credits (see
+        our <a href="/thanks">thanks page</a>). Use it to watch your own infrastructure; don't use
+        it to attempt to access infrastructure that isn't yours.
+      </p>
+      <p>
+        Questions about any of this? The app and its source speak for themselves — open
+        <a href={APP_URL}>the app</a> or read the <a href="/docs">documentation</a>.
+      </p>
+    </section>
+
+    <p class="terms__back"><a href="/">← Back home</a></p>
+  </main>
+</BaseLayout>
+
+<style>
+  .terms {
+    max-width: 44rem;
+    padding-block: 8rem var(--space-3xl);
+  }
+
+  .terms__head {
+    margin-block-end: var(--space-2xl);
+  }
+
+  .terms__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-block-end: var(--space-sm);
+  }
+
+  .terms__head h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .terms__lede {
+    margin-block-start: var(--space-lg);
+    font-size: var(--text-md);
+    color: var(--color-ink-2);
+  }
+
+  .terms__block {
+    margin-block-start: var(--space-2xl);
+    padding-block-start: var(--space-xl);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .terms__block h2 {
+    font-size: var(--text-lg);
+    margin-block-end: var(--space-md);
+  }
+
+  .terms__block p,
+  .terms__block li {
+    color: var(--color-ink-2);
+    line-height: 1.65;
+  }
+
+  .terms__block p {
+    margin-block: var(--space-sm);
+  }
+
+  .terms__block ul {
+    margin-block: var(--space-sm);
+    padding-inline-start: var(--space-lg);
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .terms__block strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .terms__block a {
+    color: var(--color-accent-bright);
+    text-decoration-color: color-mix(in oklch, var(--color-accent-bright) 45%, transparent);
+  }
+
+  .terms__block a:hover {
+    text-decoration-color: var(--color-accent-bright);
+  }
+
+  .terms__back {
+    margin-block-start: var(--space-2xl);
+  }
+
+  .terms__back a {
+    color: var(--color-ink-2);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+
+  .terms__back a:hover {
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 40rem) {
+    .terms {
+      padding-block-start: 6.5rem;
+    }
+  }
+</style>

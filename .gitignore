@@ -1,0 +1,37 @@
+# Rust
+/target
+**/target
+Cargo.lock.bak
+
+# Node / Next.js
+node_modules
+/frontend/.next
+/frontend/out
+/frontend/.turbo
+npm-debug.log*
+yarn-error.log*
+
+# Third-party media — not redistributed (see docs/ASSETS.md);
+# installed locally by `npm run assets:install`.
+/frontend/public/assets/
+/frontend/public/music/
+/frontend/public/mayor/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea
+.vscode
+
+# Logs
+*.log
+
+# Personal deployment state — kept locally, never published
+.clever.json
+CLAUDE.local.md
+.hallmark/

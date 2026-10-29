@@ -1,0 +1,77 @@
+---
+const APP_URL = "https://myprettycloud-frontend.cleverapps.io";
+---
+
+<footer class="foot-stmt container">
+  <p class="foot-stmt__line">When something catches fire, you'll see the smoke.</p>
+  <div class="foot-stmt__meta">
+    <a class="wordmark foot-stmt__brand" href="/">mypretty<em>cloud</em></a>
+    <ul class="foot-stmt__links">
+      <li><a href="/docs">Docs</a></li>
+      <li><a href="/tutorial">Tutorial</a></li>
+      <li><a href="/releases">Releases</a></li>
+      <li><a href="/thanks">Thanks</a></li>
+      <li><a href="/terms">Terms</a></li>
+      <li><a href={APP_URL}>Open the app</a></li>
+    </ul>
+    <span class="foot-stmt__credit">Runs on Clever Cloud</span>
+  </div>
+</footer>
+
+<style>
+  .foot-stmt {
+    display: grid;
+    gap: var(--space-lg);
+    padding-block: var(--space-3xl) var(--space-xl);
+  }
+
+  .foot-stmt__line {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 5vw, 3.25rem);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    max-width: 24ch;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+
+  .foot-stmt__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-md);
+    padding-block-start: var(--space-sm);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .foot-stmt__brand {
+    color: var(--color-ink);
+    font-size: var(--text-base);
+  }
+
+  .foot-stmt__links {
+    display: flex;
+    gap: var(--space-lg);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .foot-stmt__links a {
+    text-decoration: none;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
+  .foot-stmt__links a:hover {
+    color: var(--color-ink);
+  }
+
+  .foot-stmt__credit {
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+</style>

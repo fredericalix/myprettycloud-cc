@@ -1,0 +1,177 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { releases } from "../data/releases";
+
+const fmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+---
+
+<BaseLayout
+  title="Releases · myprettycloud"
+  description="What's new in myprettycloud — the changelog of features and fixes, newest first."
+  current="releases"
+>
+  <main class="rel container">
+    <header class="rel__head">
+      <p class="rel__eyebrow">Changelog</p>
+      <h1>What's new.</h1>
+      <p class="rel__lede">
+        Every notable change to myprettycloud, newest first. The version you're running shows in
+        the bottom-right corner of your city.
+      </p>
+    </header>
+
+    <ol class="rel__list">
+      {
+        releases.map((r) => (
+          <li class="rel__entry">
+            <div class="rel__marker">
+              <span class="rel__version">v{r.version}</span>
+              <time class="rel__date" datetime={r.date}>
+                {fmt.format(new Date(r.date))}
+              </time>
+            </div>
+            <div class="rel__body">
+              <h2>{r.title}</h2>
+              <ul class="rel__changes">
+                {r.changes.map((c) => (
+                  <li>{c}</li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="rel__back"><a href="/">← Back home</a></p>
+  </main>
+</BaseLayout>
+
+<style>
+  .rel {
+    max-width: 52rem;
+    padding-block: 8rem var(--space-3xl);
+  }
+
+  .rel__head {
+    margin-block-end: var(--space-2xl);
+  }
+
+  .rel__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-block-end: var(--space-sm);
+  }
+
+  .rel__head h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .rel__lede {
+    margin-block-start: var(--space-lg);
+    font-size: var(--text-md);
+    color: var(--color-ink-2);
+    max-width: 44ch;
+  }
+
+  .rel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+
+  /* Two columns on desktop: a sticky-ish version rail, then the notes. The
+     hairline sits between entries, like a printed changelog. */
+  .rel__entry {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: var(--space-xl);
+    padding-block: var(--space-xl);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .rel__entry:first-child {
+    border-top: none;
+  }
+
+  .rel__marker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .rel__version {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--color-copper);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .rel__date {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+
+  .rel__body h2 {
+    font-size: var(--text-lg);
+    line-height: 1.2;
+    margin-block-end: var(--space-md);
+  }
+
+  .rel__changes {
+    margin: 0;
+    padding-inline-start: var(--space-lg);
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .rel__changes li {
+    color: var(--color-ink-2);
+    line-height: 1.6;
+  }
+
+  .rel__back {
+    margin-block-start: var(--space-2xl);
+  }
+
+  .rel__back a {
+    color: var(--color-ink-2);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+
+  .rel__back a:hover {
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 40rem) {
+    .rel {
+      padding-block-start: 6.5rem;
+    }
+
+    .rel__entry {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .rel__marker {
+      flex-direction: row;
+      align-items: baseline;
+      gap: var(--space-sm);
+    }
+  }
+</style>

@@ -1,0 +1,349 @@
+---
+import { Image } from "astro:assets";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import medievalWide from "../assets/screenshots/medieval-wide.png";
+import medievalMarket from "../assets/screenshots/medieval-market.png";
+import metricsDrawer from "../assets/screenshots/metrics-drawer.png";
+import workflowEditor from "../assets/screenshots/workflow-editor.png";
+import workflowsManager from "../assets/screenshots/workflows-manager.png";
+import heroSpace from "../assets/screenshots/hero-space.png";
+
+const APP_URL = "https://myprettycloud-frontend.cleverapps.io";
+---
+
+<BaseLayout
+  title="Tutorial — your first city in ten minutes · myprettycloud"
+  description="A complete walkthrough of myprettycloud: sign in, lay out your city, inspect metrics, create a notification channel, arm a workflow and watch your first live alert."
+  current="tutorial"
+>
+  <main class="tut container">
+    <header class="tut__head">
+      <h1>Your first city in ten minutes.</h1>
+      <p>
+        A complete walkthrough, from signing in to watching a live alert. You only need a Clever
+        Cloud account with at least one app or add-on.
+      </p>
+    </header>
+
+    <ol class="tut__steps">
+      <li class="tut__step">
+        <div class="tut__marker"><span>1</span></div>
+        <div class="tut__body">
+          <h2>Sign in and pick your org</h2>
+          <p>
+            Open <a href={APP_URL}>the app</a> and click <strong>Sign in with Clever Cloud</strong>;
+            authorize access. In the top bar, choose the <strong>organisation</strong> you want to
+            watch — the map, metrics, workflows and settings are all scoped to it.
+          </p>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>2</span></div>
+        <div class="tut__body">
+          <h2>Turn on real-time updates</h2>
+          <p>
+            In the top bar, click <strong>Hook up</strong> (it carries a <em>"Required"</em> badge
+            until done). This installs the Clever Cloud webhook for the org, so deployments and
+            status changes reach the city within a second. Without it the city still updates, just
+            on a slower poll. The button becomes <strong>Re-install</strong> once active.
+          </p>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>3</span></div>
+        <div class="tut__body">
+          <h2>Lay out your city</h2>
+          <p>
+            Click <strong>Builder</strong> in the left rail. A new medieval map already comes with
+            the <strong>starter realm</strong> landscape — mountains, a river, a road and a sea —
+            with the village plaza left free for your buildings. In the
+            <strong>Resources</strong> panel on the right, click each app or add-on to drop it on
+            the map — or <strong>Auto-place</strong> them all at once (they fill the plaza and any
+            other open ground, never over the scenery, and the map only grows when it runs out of
+            room). Each becomes a building coloured by its live status.
+          </p>
+          <p>
+            Optional polish: set ground types, raise hills, add walls, bridges, trees and rocks.
+            Lay <strong>roads</strong> between buildings and the traffic will use them. To relocate
+            a building, select it and press <strong>M</strong>. Everything autosaves.
+          </p>
+          <figure>
+            <Image
+              src={medievalWide}
+              alt="A small medieval city laid out on a hex island, with market stalls, ruins and two carts on the move"
+              widths={[700, 1100, 2106]}
+              sizes="(max-width: 60rem) 100vw, 46rem"
+              format="webp"
+            />
+          </figure>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>4</span></div>
+        <div class="tut__body">
+          <h2>Inspect a building and its metrics</h2>
+          <p>
+            Click a building to open the <strong>building drawer</strong>. The
+            <strong>Metrics</strong> tab has interactive CPU / memory / network / disk charts —
+            pick a time range from 1&nbsp;h to 30&nbsp;d and toggle <strong>live</strong> mode.
+            Hover any building to see its name.
+          </p>
+          <figure class="tut__fig-narrow">
+            <Image
+              src={metricsDrawer}
+              alt="The building drawer's Metrics tab with a CPU chart and pills for memory, network and disk"
+              widths={[420, 840]}
+              sizes="(max-width: 40rem) 100vw, 24rem"
+              format="webp"
+            />
+          </figure>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>5</span></div>
+        <div class="tut__body">
+          <h2>Create a notification channel</h2>
+          <p>
+            Click <strong>🔔 Channels</strong> in the top bar, then <strong>+ New channel</strong>:
+            paste a Slack or Discord webhook URL, list email recipients, or point a generic webhook
+            at any URL with optional headers. Save — your first workflow will target it next.
+          </p>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>6</span></div>
+        <div class="tut__body">
+          <h2>Arm your first workflow</h2>
+          <p>
+            Still in <strong>Builder</strong> mode, open <strong>⚙️ Workflows</strong> and click
+            <strong>+ New workflow</strong>. In the graph editor, add a <strong>Condition</strong>
+            node (<em>your app's CPU ≥ 80, for 5&nbsp;m</em>), connect it to
+            <strong>Rule output</strong>, attach an <strong>Action</strong> node (<em>Send
+            notification → your channel</em>) and name the workflow.
+          </p>
+          <p>
+            Click <strong>Test</strong> before saving — the graph lights up with the live values
+            and per-node verdicts, so you see exactly what would happen right now.
+          </p>
+          <figure>
+            <Image
+              src={workflowEditor}
+              alt="The workflow graph editor in test mode: the condition node shows the live value it read and a FALSE verdict, and the action node is marked SKIPPED"
+              widths={[700, 1100, 2100]}
+              sizes="(max-width: 60rem) 100vw, 46rem"
+              format="webp"
+            />
+          </figure>
+          <p>
+            Later, the same manager lists every workflow with <strong>Diagnose</strong> — a live
+            trace that explains exactly why a rule does or doesn't match.
+          </p>
+          <figure>
+            <Image
+              src={workflowsManager}
+              alt="The Workflows manager listing a rule with its last evaluation and Diagnose, Edit, Clone, Disable and Delete actions"
+              widths={[700, 1100, 1720]}
+              sizes="(max-width: 60rem) 100vw, 46rem"
+              format="webp"
+            />
+          </figure>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>7</span></div>
+        <div class="tut__body">
+          <h2>Watch it live</h2>
+          <p>
+            Switch to <strong>View</strong> mode — clicking a building now gently flies the camera
+            to it. When the rule fires critical, the building catches <strong>fire</strong> and a
+            <strong>bell</strong> tolls; warnings raise amber smoke, a toast appears bottom-right,
+            and your channel gets the notification. The mayor's popup summarises what needs
+            attention.
+          </p>
+          <figure>
+            <Image
+              src={heroSpace}
+              alt="A space-themed city with one module on fire — a live critical alert"
+              widths={[700, 1100, 2106]}
+              sizes="(max-width: 60rem) 100vw, 46rem"
+              format="webp"
+            />
+            <figcaption>A real one: this module's app failed its deployment.</figcaption>
+          </figure>
+        </div>
+      </li>
+
+      <li class="tut__step">
+        <div class="tut__marker"><span>8</span></div>
+        <div class="tut__body">
+          <h2>Make it yours</h2>
+          <p>
+            Switch the <strong>season</strong> (Summer / Fall / Winter), toggle ambiance — wind,
+            water, day/night, particles, clouds, traffic, storage props — and it all persists per
+            organisation. Add <strong>custom monitors</strong> for things that aren't Clever Cloud
+            resources (a queue depth, an SLA marker) and drive their colour from rules. Save your
+            landscape as a <strong>template</strong> and reuse or share it.
+          </p>
+          <figure>
+            <Image
+              src={medievalMarket}
+              alt="A market square closeup with a horse and a covered cart delivering goods"
+              widths={[700, 1100, 2106]}
+              sizes="(max-width: 60rem) 100vw, 46rem"
+              format="webp"
+            />
+          </figure>
+        </div>
+      </li>
+    </ol>
+
+    <footer class="tut__close">
+      <p>
+        That's the full loop: <strong>sign in → build → inspect → alert → react</strong>. From
+        here: <a href="/docs/groups-and-custom-monitors">group related monitors</a>, wire
+        <a href="/docs/workflows">escalations</a> in the graph editor, or let an AI assistant
+        manage rules over <a href="/docs/mcp-and-integrations">MCP</a>.
+      </p>
+      <a class="btn btn--fill" href={APP_URL}>Open your city</a>
+    </footer>
+  </main>
+</BaseLayout>
+
+<style>
+  .tut {
+    max-width: 56rem;
+    padding-block: 9rem var(--space-3xl);
+  }
+
+  .tut__head {
+    margin-block-end: var(--space-2xl);
+  }
+
+  .tut__head h1 {
+    font-size: var(--text-3xl);
+    margin-block-end: var(--space-sm);
+  }
+
+  .tut__head p {
+    color: var(--color-ink-2);
+    max-width: 44rem;
+    font-size: var(--text-md);
+  }
+
+  .tut__steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .tut__step {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+
+  /* The rail: copper numeral + a hairline running down to the next step */
+  .tut__marker {
+    display: grid;
+    justify-items: center;
+    grid-template-rows: auto 1fr;
+    gap: var(--space-xs);
+  }
+
+  .tut__marker span {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--color-copper);
+    line-height: 1;
+  }
+
+  .tut__marker::after {
+    content: "";
+    width: var(--rule-hair);
+    background: var(--color-rule);
+  }
+
+  .tut__step:last-child .tut__marker::after {
+    background: transparent;
+  }
+
+  .tut__body h2 {
+    font-size: var(--text-lg);
+    margin-block-end: var(--space-sm);
+  }
+
+  .tut__body p {
+    color: var(--color-ink-2);
+    margin-block: var(--space-sm);
+  }
+
+  .tut__body strong {
+    color: var(--color-ink);
+  }
+
+  .tut__body a {
+    color: var(--color-accent-bright);
+  }
+
+  .tut__body figure {
+    margin: var(--space-lg) 0;
+  }
+
+  .tut__body img {
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+  }
+
+  .tut__fig-narrow {
+    max-width: 24rem;
+  }
+
+  .tut__body figcaption {
+    margin-block-start: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-muted);
+  }
+
+  .tut__close {
+    margin-block-start: var(--space-2xl);
+    padding-block-start: var(--space-xl);
+    border-top: var(--rule-hair) solid var(--color-rule);
+    display: grid;
+    gap: var(--space-lg);
+    justify-items: start;
+  }
+
+  .tut__close p {
+    color: var(--color-ink-2);
+    max-width: 44rem;
+  }
+
+  .tut__close strong {
+    color: var(--color-ink);
+  }
+
+  .tut__close a:not(.btn) {
+    color: var(--color-accent-bright);
+  }
+
+  @media (max-width: 40rem) {
+    .tut {
+      padding-block-start: 7rem;
+    }
+
+    .tut__step {
+      grid-template-columns: 2rem minmax(0, 1fr);
+      gap: var(--space-md);
+    }
+  }
+</style>

@@ -1,0 +1,21 @@
+{
+  "name": "myprettycloud-website",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.2.5",
+    "@fontsource/jetbrains-mono": "^5.2.5",
+    "@fontsource/rajdhani": "^5.2.5",
+    "astro": "^5.14.0",
+    "compression": "^1.8.0",
+    "express": "^4.21.2",
+    "sharp": "^0.33.5"
+  }
+}

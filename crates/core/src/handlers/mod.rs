@@ -1,0 +1,16 @@
+//! HTTP handlers under /api/*. /auth/* lives in `crate::auth::routes`,
+//! /webhooks/cc/:token in `crate::webhooks::receiver`, /ws in `crate::ws`.
+
+pub mod api;
+pub mod channels;
+pub mod groups;
+pub mod mcp_admin;
+pub mod rules;
+pub mod templates;
+
+pub use api::router as api_router;
+pub use channels::router as channels_router;
+pub use groups::router as groups_router;
+pub use mcp_admin::router as mcp_admin_router;
+pub use rules::router as rules_router;
+pub use templates::router as templates_router;

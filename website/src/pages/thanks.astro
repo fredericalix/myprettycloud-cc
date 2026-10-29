@@ -1,0 +1,258 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Thanks & how it's built · myprettycloud"
+  description="Where the 3D assets come from (KayKit by Kay Lousberg, CC0) and a plain-English tour of the technology behind myprettycloud."
+>
+  <main class="thanks container">
+    <header class="thanks__head">
+      <p class="thanks__eyebrow">Colophon</p>
+      <h1>Built on other people's good work.</h1>
+      <p class="thanks__lede">
+        myprettycloud is a city you can read, and a city needs a world. Almost everything you see
+        in it — every building, cart, mountain and starship — was made by someone else and shared
+        freely. This page says where it came from, and how the rest is put together.
+      </p>
+    </header>
+
+    <section class="thanks__block" aria-labelledby="assets-title">
+      <h2 id="assets-title">The 3D world — KayKit</h2>
+      <p>
+        Every model in the city comes from <strong>KayKit</strong> by
+        <a href="https://kaylousberg.itch.io/" target="_blank" rel="noopener noreferrer"
+          >Kay Lousberg</a
+        >. The medieval town is built from the <em>KayKit Medieval Hexagon Pack</em>; the space
+        station from <em>KayKit Space Base Bits</em>. Both are released under
+        <a
+          href="https://creativecommons.org/publicdomain/zero/1.0/"
+          target="_blank"
+          rel="noopener noreferrer">Creative Commons Zero</a
+        > — free to use, even commercially, with no obligation to credit.
+      </p>
+      <p class="thanks__warm">
+        We credit anyway, because this product simply would not look like itself without that kit.
+        Thank you, Kay. ♥
+      </p>
+      <p>
+        If you make games or toys, go and get the packs —
+        <a href="https://kaylousberg.itch.io/" target="_blank" rel="noopener noreferrer"
+          >kaylousberg.itch.io</a
+        >.
+      </p>
+      <p>
+        <strong>Self-hosting myprettycloud?</strong> The source code is open (AGPL-3.0), but the
+        3D models are not shipped with it. Buy the <em>Source Files</em> edition of the
+        <a
+          href="https://kaylousberg.itch.io/kaykit-medieval-hexagon"
+          target="_blank"
+          rel="noopener noreferrer">Medieval Hexagon Pack</a
+        > and of
+        <a href="https://kaylousberg.itch.io/space-base-bits" target="_blank" rel="noopener noreferrer"
+          >Space Base Bits</a
+        >, then run <code>npm run assets:install</code>. The repository's
+        <code>docs/ASSETS.md</code> walks you through it step by step.
+      </p>
+    </section>
+
+    <section class="thanks__block" aria-labelledby="how-title">
+      <h2 id="how-title">How the app works, in plain English</h2>
+      <p>
+        You sign in with your Clever Cloud account. From then on, myprettycloud keeps asking Clever
+        Cloud one question on a loop: <em>how is each of your apps and add-ons doing right now?</em>
+        Every answer — running or failed, busy or idle, how much memory and disk it's using — is
+        painted onto a building. A failed deploy catches fire; a busy service spins its mill faster;
+        network traffic fills the roads between buildings.
+      </p>
+      <p>
+        On top of that live picture you can arm <strong>workflows</strong>: rules like <em>“if this
+        app's CPU stays above 80% for five minutes, tell my Slack.”</em> When a rule trips, the city
+        reacts — a bell tolls, the building smokes — and the notification goes out. That's the whole
+        loop: <strong>sign in → watch → react.</strong>
+      </p>
+    </section>
+
+    <section class="thanks__block" aria-labelledby="stack-title">
+      <h2 id="stack-title">The technology</h2>
+      <p>Nothing exotic — just solid, boring pieces doing one job each:</p>
+      <dl class="stack">
+        <div class="stack__row">
+          <dt>The city</dt>
+          <dd>
+            Renders in your browser with <strong>Three.js</strong> and
+            <strong>react-three-fiber</strong>, inside a <strong>Next.js</strong> / React app.
+            It's a static site — the 3D models stream in from object storage.
+          </dd>
+        </div>
+        <div class="stack__row">
+          <dt>The brain</dt>
+          <dd>
+            A <strong>Rust</strong> backend (the Axum framework) polls Clever Cloud, evaluates your
+            workflow rules and sends notifications. It stores your city layout and rules in
+            <strong>PostgreSQL</strong>.
+          </dd>
+        </div>
+        <div class="stack__row">
+          <dt>Live updates</dt>
+          <dd>
+            Changes reach the city over a <strong>WebSocket</strong> the moment they happen —
+            sub-second when Clever Cloud's deployment webhooks are wired up, otherwise on a short
+            poll.
+          </dd>
+        </div>
+        <div class="stack__row">
+          <dt>AI access</dt>
+          <dd>
+            The backend speaks the <strong>Model Context Protocol</strong>, so an assistant like
+            Claude can read your monitors and author workflows for you.
+          </dd>
+        </div>
+        <div class="stack__row">
+          <dt>Where it runs</dt>
+          <dd>
+            Everything is hosted on <strong>Clever Cloud</strong> — backend, the web app, and this
+            site — a European, sovereign host. See our <a href="/terms">terms &amp; privacy</a>.
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <p class="thanks__back"><a href="/">← Back home</a></p>
+  </main>
+</BaseLayout>
+
+<style>
+  .thanks {
+    max-width: 48rem;
+    padding-block: 8rem var(--space-3xl);
+  }
+
+  .thanks__head {
+    margin-block-end: var(--space-2xl);
+  }
+
+  .thanks__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-block-end: var(--space-sm);
+  }
+
+  .thanks__head h1 {
+    font-size: var(--text-3xl);
+    line-height: 1.04;
+  }
+
+  .thanks__lede {
+    margin-block-start: var(--space-lg);
+    font-size: var(--text-md);
+    color: var(--color-ink-2);
+  }
+
+  .thanks__block {
+    margin-block-start: var(--space-2xl);
+    padding-block-start: var(--space-xl);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .thanks__block h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-md);
+  }
+
+  .thanks__block p {
+    color: var(--color-ink-2);
+    line-height: 1.65;
+    margin-block: var(--space-sm);
+  }
+
+  .thanks__block strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .thanks__block a {
+    color: var(--color-accent-bright);
+    text-decoration-color: color-mix(in oklch, var(--color-accent-bright) 45%, transparent);
+  }
+
+  .thanks__block a:hover {
+    text-decoration-color: var(--color-accent-bright);
+  }
+
+  .thanks__warm {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    color: var(--color-copper) !important;
+    line-height: 1.4 !important;
+  }
+
+  .stack {
+    margin: var(--space-md) 0 0;
+    display: grid;
+    gap: 0;
+  }
+
+  .stack__row {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: var(--space-lg);
+    padding-block: var(--space-md);
+    border-top: var(--rule-hair) solid var(--color-rule-2);
+  }
+
+  .stack__row:first-child {
+    border-top: none;
+  }
+
+  .stack dt {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    font-size: var(--text-md);
+  }
+
+  .stack dd {
+    margin: 0;
+    color: var(--color-ink-2);
+    line-height: 1.6;
+  }
+
+  .stack dd strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .stack dd a {
+    color: var(--color-accent-bright);
+  }
+
+  .thanks__back {
+    margin-block-start: var(--space-2xl);
+  }
+
+  .thanks__back a {
+    color: var(--color-ink-2);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+
+  .thanks__back a:hover {
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 40rem) {
+    .thanks {
+      padding-block-start: 6.5rem;
+    }
+
+    .stack__row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-2xs);
+    }
+  }
+</style>

@@ -1,0 +1,44 @@
+---
+import "@fontsource/rajdhani/600.css";
+import "@fontsource/rajdhani/700.css";
+import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource/jetbrains-mono/400.css";
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path of the current top-level section, used to mark the active nav link. */
+  current?: "docs" | "tutorial" | "releases" | "home";
+  ogImage?: string;
+}
+
+const { title, description, current = "home", ogImage = "/og.png" } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body>
+    <SiteHeader current={current} />
+    <slot />
+    <SiteFooter />
+  </body>
+</html>

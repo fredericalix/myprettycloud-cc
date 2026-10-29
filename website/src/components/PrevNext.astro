@@ -1,0 +1,73 @@
+---
+import { docsOrder } from "../data/docs-nav";
+
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+const i = docsOrder.findIndex((item) => item.slug === slug);
+const prev = i > 0 ? docsOrder[i - 1] : undefined;
+const next = i >= 0 && i < docsOrder.length - 1 ? docsOrder[i + 1] : undefined;
+---
+
+<nav class="prevnext" aria-label="Pagination">
+  {
+    prev ? (
+      <a class="prevnext__link" href={prev.href} rel="prev">
+        <span class="prevnext__dir">← Previous</span>
+        <span class="prevnext__label">{prev.label}</span>
+      </a>
+    ) : (
+      <span />
+    )
+  }
+  {
+    next && (
+      <a class="prevnext__link prevnext__link--next" href={next.href} rel="next">
+        <span class="prevnext__dir">Next →</span>
+        <span class="prevnext__label">{next.label}</span>
+      </a>
+    )
+  }
+</nav>
+
+<style>
+  .prevnext {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-block-start: var(--space-2xl);
+    padding-block-start: var(--space-lg);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .prevnext__link {
+    display: grid;
+    gap: 2px;
+    text-decoration: none;
+    max-width: 18rem;
+  }
+
+  .prevnext__link--next {
+    text-align: right;
+  }
+
+  .prevnext__dir {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .prevnext__label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-md);
+    color: var(--color-ink);
+  }
+
+  .prevnext__link:hover .prevnext__label {
+    color: var(--color-accent-bright);
+  }
+</style>

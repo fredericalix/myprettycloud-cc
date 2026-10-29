@@ -1,0 +1,74 @@
+---
+import { docsNav } from "../data/docs-nav";
+
+interface Props {
+  currentHref: string;
+}
+const { currentHref } = Astro.props;
+---
+
+<nav class="docs-side" aria-label="Documentation">
+  {
+    docsNav.map((group) => (
+      <section class="docs-side__group">
+        <h2 class="docs-side__head">{group.group}</h2>
+        <ul class="docs-side__list">
+          {group.items.map((item) => (
+            <li>
+              <a href={item.href} aria-current={item.href === currentHref ? "page" : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</nav>
+
+<style>
+  .docs-side {
+    display: grid;
+    gap: var(--space-lg);
+    align-content: start;
+  }
+
+  .docs-side__head {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0 0 var(--space-xs);
+  }
+
+  .docs-side__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .docs-side__list a {
+    display: block;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+  }
+
+  .docs-side__list a:hover {
+    color: var(--color-ink);
+    background: var(--color-paper-2);
+  }
+
+  .docs-side__list a[aria-current="page"] {
+    color: var(--color-ink);
+    background: var(--color-paper-2);
+    box-shadow: inset 2px 0 0 var(--color-accent);
+  }
+</style>

@@ -1,0 +1,376 @@
+// Mirror of the JSON shapes the backend returns.
+
+export interface Me {
+  user_id: string;
+  cc_user_id: string;
+  email: string | null;
+  display_name: string | null;
+}
+
+export interface Org {
+  id: string;
+  user_id: string;
+  cc_org_id: string;
+  name: string | null;
+  avatar_url: string | null;
+  refreshed_at: string;
+  /** Live ground truth from CC: a webhook pointing at our prefix exists. */
+  has_webhook: boolean;
+  /** True when the backend couldn't reach CC to verify; the UI shows a "?". */
+  webhook_check_failed: boolean;
+  /** From our local cache; null if we've never received an event. */
+  webhook_last_received_at: string | null;
+}
+
+export type MonitorState = "ok" | "warning" | "critical" | "unknown";
+
+export interface Monitor {
+  id: string;
+  user_id: string;
+  cc_org_id: string | null;
+  kind: "cc_application" | "cc_addon" | "synthetic";
+  cc_resource_id: string | null;
+  cc_metrics_id: string | null;
+  display_name: string;
+  enabled: boolean;
+  poll_interval_seconds: number;
+  current_state: MonitorState;
+  current_message: string | null;
+  current_state_since: string | null;
+  last_poll_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookConfig {
+  id: string;
+  user_id: string;
+  cc_org_id: string;
+  cc_webhook_id: string | null;
+  subscribed_events: string[];
+  last_received_at: string | null;
+  failure_count: number;
+  created_at: string;
+}
+
+export type WsFrame =
+  | {
+      type: "monitor_state";
+      monitor_id: string;
+      state: MonitorState;
+      message: string | null;
+      since: string | null;
+    }
+  | {
+      type: "webhook_health";
+      cc_org_id: string;
+      last_received_at: string;
+    }
+  | {
+      type: "metrics_snapshot";
+      monitor_id: string;
+      ts: string;
+      cpu: number | null;
+      mem: number | null;
+      disk: number | null;
+      net_in: number | null;
+      net_out: number | null;
+    };
+
+export interface MetricSnapshot {
+  cpu: number | null;
+  mem: number | null;
+  disk: number | null;
+  net_in: number | null;
+  net_out: number | null;
+  ts: string;
+}
+
+/// Server response shape for GET /api/orgs/:cc_org_id/snapshots — same as
+/// MetricSnapshot but carries `monitor_id` (the WS frame strips it because
+/// the receiver maps frames into a snapshot keyed by monitor_id).
+export interface MetricSnapshotApi extends MetricSnapshot {
+  monitor_id: string;
+}
+
+export interface AutoRules {
+  name_pattern?: string;
+  kinds?: string[];
+}
+
+export type GroupRolledState =
+  | "ok"
+  | "warning"
+  | "critical"
+  | "unknown";
+
+export interface StateBreakdown {
+  ok: number;
+  warning: number;
+  critical: number;
+  unknown: number;
+  total: number;
+}
+
+export interface GroupView {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  auto_rules: AutoRules | null;
+  created_at: string;
+  updated_at: string;
+  member_ids: string[];
+  rolled_state: GroupRolledState;
+  state_breakdown: StateBreakdown;
+}
+
+export interface CreateGroupInput {
+  name: string;
+  description?: string;
+  auto_rules?: AutoRules;
+}
+
+// ───── Rules / workflow engine ─────
+
+export type CompOp =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "contains"
+  | "not_contains";
+
+export type LogicalOp = "and" | "or";
+
+export interface DurationSpec {
+  seconds: number;
+}
+
+export type Condition =
+  | {
+      type: "comparison";
+      field: string;
+      operator: CompOp;
+      value: unknown;
+      for_duration?: DurationSpec;
+    }
+  | {
+      type: "logical";
+      op: LogicalOp;
+      children: Condition[];
+    };
+
+export type Action =
+  | {
+      type: "set_monitor_state";
+      target_monitor_id: string;
+      state: string;
+      message?: string;
+      /** Restore the target's pre-action state when the condition recovers. */
+      revert_on_recovery?: boolean;
+    }
+  | {
+      type: "send_notification";
+      channel_id: string;
+      message: string;
+      subject?: string;
+    }
+  | {
+      type: "escalate";
+      delay_seconds: number;
+      target_rule_id: string;
+    };
+
+export interface Rule {
+  id: string;
+  user_id: string;
+  /** Clever Cloud org the rule belongs to (org of the monitors it watches). */
+  cc_org_id: string | null;
+  name: string;
+  is_enabled: boolean;
+  condition: Condition;
+  actions: Action[];
+  cooldown_seconds: number;
+  last_fired_at: string | null;
+  last_outcome_state: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  last_modified_at: string;
+}
+
+export interface UpsertRuleInput {
+  name: string;
+  is_enabled?: boolean;
+  condition: Condition;
+  actions: Action[];
+  cooldown_seconds?: number;
+  metadata?: Record<string, unknown>;
+  comment?: string;
+  /** Org to tag the rule with; omitted → backend derives it from the monitors. */
+  cc_org_id?: string;
+}
+
+export interface RuleVersion {
+  rule_id: string;
+  version_id: string;
+  rule: Rule;
+  comment: string | null;
+  saved_at: string;
+}
+
+export interface RuleFiring {
+  id: string;
+  rule_id: string | null;
+  user_id: string | null;
+  fired_at: string;
+  trigger_kind: string;
+  trigger_ref: string | null;
+  outcome: "matched" | "not_matched" | "cooldown_skipped" | "error";
+  actions_executed: unknown;
+  error_message: string | null;
+}
+
+export interface DryRunResult {
+  matched: boolean;
+  actions_that_would_run: number;
+}
+
+/** One node of the backend's condition trace (`RuleDebugResponse.condition_summary`
+ *  and `TestDraftResponse.condition_trace`): the condition tree annotated with
+ *  live values and per-node verdicts. */
+export type TraceNode =
+  | {
+      type: "comparison";
+      field: string;
+      operator: string;
+      expected: unknown;
+      actual: unknown;
+      verdict: boolean;
+      /** Raw comparison before the `for_duration` hold check; `true` with
+       *  `verdict: false` means "true now, but not held long enough yet". */
+      instantaneous?: boolean;
+      for_duration_seconds: number | null;
+      parse_error: string | null;
+    }
+  | { type: "logical"; op: string; verdict: boolean; children: TraceNode[] };
+
+/** Response of POST /api/rules/test-draft — dry-run of an unsaved rule body. */
+export interface TestDraftResponse {
+  matched: boolean;
+  condition_trace: TraceNode;
+  actions_total: number;
+  actions_that_would_run: number;
+}
+
+// ───── Notification channels ─────
+
+export type ChannelKind = "email" | "slack" | "discord" | "webhook";
+
+export interface NotificationChannel {
+  id: string;
+  user_id: string;
+  kind: ChannelKind;
+  name: string;
+  config: Record<string, unknown>;
+  enabled: boolean;
+  failure_count: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_failure_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpsertChannelInput {
+  kind: ChannelKind;
+  name: string;
+  config: Record<string, unknown>;
+  enabled?: boolean;
+}
+
+// ───── Rule debug ─────
+
+export interface CooldownState {
+  remaining_seconds: number;
+  cooldown_seconds: number;
+  last_fired_at: string | null;
+  last_outcome_state: string | null;
+  would_skip_due_to_cooldown: boolean;
+}
+
+export interface MonitorDebugInfo {
+  id: string;
+  display_name: string;
+  kind: string;
+  current_state: MonitorState;
+  current_state_since: string | null;
+  current_message: string | null;
+  held_for_seconds: number;
+}
+
+export interface GroupDebugInfo {
+  id: string;
+  name: string;
+  rolled_state: GroupRolledState;
+  critical_count: number;
+  warning_count: number;
+  ok_count: number;
+  unknown_count: number;
+  total: number;
+  member_ids: string[];
+}
+
+export interface ChannelDebugInfo {
+  id: string;
+  name: string;
+  kind: ChannelKind;
+  enabled: boolean;
+  failure_count: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_failure_message: string | null;
+}
+
+export interface MonitorDebugResponse {
+  monitor: Monitor;
+  cc_metrics_id: string | null;
+  samples_count_30m: number;
+  window: string;
+  available_metrics: string[];
+  missing_metrics: string[];
+  expected_metrics: string[];
+  latest_sample: (MetricSnapshot & { monitor_id: string }) | null;
+  last_poll_at: string | null;
+  note: string | null;
+}
+
+export interface RuleDebugResponse {
+  rule: Rule;
+  would_match_now: boolean;
+  condition_summary: unknown;
+  cooldown: CooldownState;
+  recent_firings: RuleFiring[];
+  monitors_referenced: MonitorDebugInfo[];
+  groups_referenced: GroupDebugInfo[];
+  channels_used: ChannelDebugInfo[];
+}
+
+export interface McpStatus {
+  enabled: boolean;
+  has_token: boolean;
+  token_prefix: string | null;
+  created_at: string | null;
+  last_used_at: string | null;
+  endpoint_url: string;
+}
+
+export interface McpTokenCreated {
+  token: string;
+  token_prefix: string;
+  created_at: string;
+  endpoint_url: string;
+}

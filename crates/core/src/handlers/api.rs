@@ -1,0 +1,587 @@
+//! Authenticated API routes under /api/*.
+//! Phase 2: list orgs, set up webhook.
+
+use crate::cc::{CcClient, SUBSCRIBED_EVENTS};
+use crate::auth::AuthenticatedUser;
+use crate::db::metric_readings::{self, MetricReading};
+use crate::db::monitor_state_history;
+use crate::db::monitors::{self, Monitor};
+use crate::db::orgs::{self, OrgInput};
+use crate::db::webhook_configs::{self, WebhookConfig};
+use crate::error::AppError;
+use crate::monitors::sync;
+use crate::realtime::{self, WsFrame};
+use crate::state::AppState;
+use axum::Json;
+use axum::Router;
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::routing::{delete, get, post};
+use base64::Engine;
+use chrono::{DateTime, Duration, Utc};
+use futures::future::join_all;
+use rand::RngCore;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use uuid::Uuid;
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/api/me", get(me))
+        .route("/api/orgs", get(list_orgs))
+        .route("/api/orgs/{cc_org_id}/webhook", post(setup_webhook))
+        .route(
+            "/api/orgs/{cc_org_id}/monitors",
+            get(list_monitors).post(create_monitor),
+        )
+        .route(
+            "/api/orgs/{cc_org_id}/monitors/{monitor_id}",
+            delete(delete_monitor),
+        )
+        .route(
+            "/api/orgs/{cc_org_id}/monitors/{monitor_id}/state",
+            post(set_monitor_state_manual),
+        )
+        .route("/api/orgs/{cc_org_id}/snapshots", get(list_snapshots))
+        .route(
+            "/api/orgs/{cc_org_id}/monitors/{monitor_id}/debug",
+            get(monitor_debug),
+        )
+}
+
+/// Five metrics the poller writes to `metric_readings` on every cycle. The
+/// debug endpoint compares this set against what the table actually has on
+/// the last 30 min to answer "why is disk/net empty for this app?".
+const EXPECTED_METRICS: &[&str] = &["cpu", "mem", "disk", "net_in", "net_out"];
+const DEBUG_WINDOW_MINUTES: i64 = 30;
+
+/// Wire-compatible shape for the snapshots endpoint and debug
+/// `latest_sample`. Same JSON as before the per-metric refacto so the
+/// frontend doesn't need to change. `ts` is the max of the per-metric
+/// timestamps in the latest_per_metric set.
+#[derive(Serialize)]
+struct MetricSnapshotApi {
+    monitor_id: Uuid,
+    ts: DateTime<Utc>,
+    cpu: Option<f64>,
+    mem: Option<f64>,
+    disk: Option<f64>,
+    net_in: Option<f64>,
+    net_out: Option<f64>,
+}
+
+/// Build a MetricSnapshotApi from a HashMap<metric_name, MetricReading>.
+fn snapshot_from_map(monitor_id: Uuid, m: &HashMap<String, MetricReading>) -> MetricSnapshotApi {
+    let max_ts = m
+        .values()
+        .map(|r| r.ts)
+        .max()
+        .unwrap_or_else(Utc::now);
+    MetricSnapshotApi {
+        monitor_id,
+        ts: max_ts,
+        cpu: m.get("cpu").map(|r| r.value),
+        mem: m.get("mem").map(|r| r.value),
+        disk: m.get("disk").map(|r| r.value),
+        net_in: m.get("net_in").map(|r| r.value),
+        net_out: m.get("net_out").map(|r| r.value),
+    }
+}
+
+#[derive(Serialize)]
+struct MonitorDebugResponse {
+    monitor: Monitor,
+    cc_metrics_id: Option<String>,
+    /// Number of poll samples written for this monitor in the analysis
+    /// window. 0 means the poller hasn't written anything yet — expect a
+    /// value within 60 s.
+    samples_count_30m: i64,
+    window: &'static str,
+    /// Metrics with at least one non-null value in the window. These are
+    /// the ones CC's Warp10 actually emits for this app's runtime.
+    available_metrics: Vec<&'static str>,
+    /// `expected_metrics ∖ available_metrics`. The answer to the user's
+    /// "why is disk/net empty?" — these are not emitted by CC for this app.
+    missing_metrics: Vec<&'static str>,
+    expected_metrics: &'static [&'static str],
+    latest_sample: Option<MetricSnapshotApi>,
+    last_poll_at: Option<DateTime<Utc>>,
+    note: Option<&'static str>,
+}
+
+async fn monitor_debug(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((cc_org_id, monitor_id)): Path<(String, Uuid)>,
+) -> Result<Json<MonitorDebugResponse>, AppError> {
+    // Multi-tenant: org ownership AND monitor.user_id == auth.id (the latter
+    // is enforced by find_by_id_for_user). Defense in depth: also verify
+    // monitor.cc_org_id == cc_org_id so a leaked monitor_id can't be queried
+    // through a foreign org URL.
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+    let monitor = monitors::find_by_id_for_user(&state.db, auth.id, monitor_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("monitor {monitor_id} not found")))?;
+    if monitor.cc_org_id.as_deref() != Some(cc_org_id.as_str()) {
+        return Err(AppError::Forbidden);
+    }
+
+    let last_poll_at = monitor.last_poll_at;
+    let since = Utc::now() - Duration::minutes(DEBUG_WINDOW_MINUTES);
+    let availability = metric_readings::availability(&state.db, monitor.id, since).await?;
+    let latest_map = metric_readings::latest_per_metric(&state.db, monitor.id).await?;
+    let latest_sample = if latest_map.is_empty() {
+        None
+    } else {
+        Some(snapshot_from_map(monitor.id, &latest_map))
+    };
+
+    let mut available_metrics = Vec::new();
+    let mut missing_metrics = Vec::new();
+    let pairs: [(&'static str, bool); 5] = [
+        ("cpu", availability.cpu),
+        ("mem", availability.mem),
+        ("disk", availability.disk),
+        ("net_in", availability.net_in),
+        ("net_out", availability.net_out),
+    ];
+    for (name, present) in pairs {
+        if present {
+            available_metrics.push(name);
+        } else {
+            missing_metrics.push(name);
+        }
+    }
+
+    let note = if monitor.cc_metrics_id.is_none() {
+        Some("synthetic monitor — not backed by Warp10 data")
+    } else if availability.samples_count == 0 {
+        Some("no samples written in the last 30 min — wait for the next poll cycle (~60 s)")
+    } else {
+        None
+    };
+
+    Ok(Json(MonitorDebugResponse {
+        monitor: monitor.clone(),
+        cc_metrics_id: monitor.cc_metrics_id.clone(),
+        samples_count_30m: availability.samples_count,
+        window: "30m",
+        available_metrics,
+        missing_metrics,
+        expected_metrics: EXPECTED_METRICS,
+        latest_sample,
+        last_poll_at,
+        note,
+    }))
+}
+
+async fn list_snapshots(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(cc_org_id): Path<String>,
+) -> Result<Json<Vec<MetricSnapshotApi>>, AppError> {
+    // Multi-tenant: verify org ownership before reading; the SQL JOIN below
+    // filters by user_id too as defense in depth.
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+    let rows = metric_readings::latest_per_metric_for_org(&state.db, auth.id, &cc_org_id).await?;
+    // Group by monitor_id, then assemble a MetricSnapshotApi per monitor.
+    let mut by_monitor: HashMap<Uuid, HashMap<String, MetricReading>> = HashMap::new();
+    for r in rows {
+        by_monitor
+            .entry(r.monitor_id)
+            .or_default()
+            .insert(r.metric_name.clone(), r);
+    }
+    let snapshots: Vec<MetricSnapshotApi> = by_monitor
+        .into_iter()
+        .map(|(monitor_id, m)| snapshot_from_map(monitor_id, &m))
+        .collect();
+    Ok(Json(snapshots))
+}
+
+async fn list_monitors(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(cc_org_id): Path<String>,
+) -> Result<Json<Vec<Monitor>>, AppError> {
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+
+    let cc = CcClient::new(
+        &state.http_client,
+        &state.config,
+        &auth.access_token,
+        &auth.access_secret,
+    );
+    let monitors = sync::sync_org(&state.db, &cc, auth.id, &cc_org_id)
+        .await
+        .map_err(|e| AppError::CcApi(format!("sync_org: {e}")))?;
+    Ok(Json(monitors))
+}
+
+#[derive(Deserialize)]
+struct CreateMonitorBody {
+    display_name: String,
+    /// Base building asset id chosen in the builder, kept in metadata so the
+    /// monitor can be re-placed later with the same look.
+    #[serde(default)]
+    building: Option<String>,
+}
+
+/// Create a standalone "synthetic" monitor scoped to this org — a building in
+/// the city whose state is driven purely by rules (no CC app/addon behind it).
+async fn create_monitor(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(cc_org_id): Path<String>,
+    Json(body): Json<CreateMonitorBody>,
+) -> Result<Json<Monitor>, AppError> {
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+
+    let name = body.display_name.trim();
+    if name.is_empty() {
+        return Err(AppError::BadRequest("display_name is required".into()));
+    }
+    let metadata = body
+        .building
+        .as_deref()
+        .map(|b| serde_json::json!({ "building": b }));
+
+    let created = monitors::create_synthetic(&state.db, auth.id, &cc_org_id, name, metadata)
+        .await?
+        .ok_or_else(|| AppError::Conflict("a monitor with this name already exists".into()))?;
+    Ok(Json(created))
+}
+
+#[derive(Deserialize)]
+struct SetStateBody {
+    state: String,
+    #[serde(default)]
+    message: Option<String>,
+}
+
+const MANUAL_STATES: &[&str] = &["ok", "warning", "critical", "unknown"];
+
+/// Manually set a monitor's state from the builder (e.g. pick the default state
+/// of a custom monitored building). Mirrors the webhook/rule path: persist if
+/// changed, append history (source `manual`), and broadcast the `monitor_state`
+/// frame so the city recolours the building live.
+async fn set_monitor_state_manual(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((cc_org_id, monitor_id)): Path<(String, Uuid)>,
+    Json(body): Json<SetStateBody>,
+) -> Result<Json<Monitor>, AppError> {
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+    if !MANUAL_STATES.contains(&body.state.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "invalid state '{}' (expected ok|warning|critical|unknown)",
+            body.state
+        )));
+    }
+    let monitor = monitors::find_by_id_for_user(&state.db, auth.id, monitor_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("monitor not found".into()))?;
+
+    let changed =
+        monitors::set_state_if_changed(&state.db, monitor_id, &body.state, body.message.as_deref())
+            .await?;
+    if let Some((effective_state, since)) = changed {
+        let _ = monitor_state_history::insert(
+            &state.db,
+            monitor_id,
+            &effective_state,
+            body.message.as_deref(),
+            Utc::now(),
+            "manual",
+        )
+        .await;
+        let org = monitor.cc_org_id.as_deref().unwrap_or(&cc_org_id);
+        let _ = realtime::broadcast_via_pg(
+            &state.db,
+            org,
+            WsFrame::MonitorState {
+                monitor_id,
+                state: effective_state,
+                message: body.message.clone(),
+                since: Some(since),
+            },
+        )
+        .await;
+
+        // A manual transition must trigger dependent workflows exactly like a
+        // webhook/poll one — synthetic monitors have no other state source.
+        // Fire-and-forget so notification delivery never delays the response.
+        let trigger_state = state.clone();
+        let user_id = auth.id;
+        tokio::spawn(async move {
+            match crate::rules::exec::trigger_for_monitor(
+                &trigger_state,
+                user_id,
+                monitor_id,
+                crate::rules::exec::Trigger::Manual { monitor_id },
+            )
+            .await
+            {
+                Ok(fired) => {
+                    tracing::info!(%monitor_id, fired, "trigger_for_monitor done (manual)");
+                }
+                Err(e) => {
+                    tracing::error!(%monitor_id, error = %e, "trigger_for_monitor failed (manual)");
+                }
+            }
+        });
+    }
+
+    let fresh = monitors::find_by_id_for_user(&state.db, auth.id, monitor_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("monitor not found".into()))?;
+    Ok(Json(fresh))
+}
+
+/// Delete a monitor owned by this user. Used by the builder to remove a custom
+/// monitored building; rules that targeted it simply no-op afterwards.
+async fn delete_monitor(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((cc_org_id, monitor_id)): Path<(String, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or(AppError::Forbidden)?;
+    let removed = monitors::delete_for_user(&state.db, auth.id, monitor_id).await?;
+    if removed == 0 {
+        return Err(AppError::NotFound("monitor not found".into()));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Serialize)]
+struct Me {
+    user_id: uuid::Uuid,
+    cc_user_id: String,
+    email: Option<String>,
+    display_name: Option<String>,
+}
+
+async fn me(auth: AuthenticatedUser) -> Json<Me> {
+    Json(Me {
+        user_id: auth.id,
+        cc_user_id: auth.user.cc_user_id,
+        email: auth.user.email,
+        display_name: auth.user.display_name,
+    })
+}
+
+/// Org enriched with webhook ground truth fetched live from CC, plus the
+/// `last_received_at` from our local cache (so the UI can show "last event
+/// 3 min ago" on a hooked-up workshop without an extra round-trip).
+#[derive(Serialize)]
+struct OrgView {
+    /// The Clever Cloud org id (`orga_…`) — what the frontend uses for every
+    /// org-scoped call. MUST be the CC id, not the DB row PK.
+    id: String,
+    user_id: Uuid,
+    cc_org_id: String,
+    name: Option<String>,
+    avatar_url: Option<String>,
+    refreshed_at: DateTime<Utc>,
+    /// Live ground truth: at least one webhook on the CC org points at our
+    /// `${PUBLIC_BASE_URL}/webhooks/cc/` prefix.
+    has_webhook: bool,
+    /// True when the live CC check errored for this org. The frontend renders
+    /// a small "?" affordance instead of guessing.
+    webhook_check_failed: bool,
+    /// From the local `webhook_configs` row, if any. Useful for "last event
+    /// X min ago" in the UI.
+    webhook_last_received_at: Option<DateTime<Utc>>,
+}
+
+async fn list_orgs(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> Result<Json<Vec<OrgView>>, AppError> {
+    let cc = CcClient::new(
+        &state.http_client,
+        &state.config,
+        &auth.access_token,
+        &auth.access_secret,
+    );
+    let cc_orgs = cc
+        .list_organisations()
+        .await
+        .map_err(|e| AppError::CcApi(format!("list_organisations: {e}")))?;
+
+    let inputs: Vec<OrgInput<'_>> = cc_orgs
+        .iter()
+        .map(|o| OrgInput {
+            cc_org_id: &o.id,
+            name: Some(o.name.as_str()),
+            avatar_url: o.avatar.as_deref(),
+        })
+        .collect();
+
+    let orgs = orgs::replace_for_user(&state.db, auth.id, &inputs).await?;
+
+    // Local cache view: webhook_configs rows the user already has. We use
+    // these for the optional `webhook_last_received_at` field; ground truth
+    // for `has_webhook` is the live CC call below.
+    let cached: HashMap<String, WebhookConfig> = webhook_configs::list_for_user(&state.db, auth.id)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|c| (c.cc_org_id.clone(), c))
+        .collect();
+
+    // Live verification: parallel-fetch the webhook list on each CC org so
+    // the UI knows whether to render Hook up or Re-install. If a tenant is
+    // slow we still resolve as a batch — total wall-clock ≈ slowest single
+    // call, not the sum.
+    let our_prefix = format!(
+        "{}/webhooks/cc/",
+        state.config.app_url.trim_end_matches('/')
+    );
+    let checks = orgs.iter().map(|o| {
+        let cc = &cc;
+        let prefix = our_prefix.clone();
+        async move {
+            match cc.list_webhooks(&o.cc_org_id).await {
+                Ok(hooks) => {
+                    let has = hooks
+                        .iter()
+                        .any(|h| h.urls.iter().any(|u| u.url.starts_with(&prefix)));
+                    (true, has)
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        cc_org_id = %o.cc_org_id,
+                        error = ?e,
+                        "list_webhooks failed during list_orgs; flagging webhook_check_failed"
+                    );
+                    (false, false)
+                }
+            }
+        }
+    });
+    let results = join_all(checks).await;
+
+    let views: Vec<OrgView> = orgs
+        .into_iter()
+        .zip(results)
+        .map(|(o, (ok, has_webhook))| OrgView {
+            id: o.cc_org_id.clone(),
+            user_id: o.user_id,
+            cc_org_id: o.cc_org_id.clone(),
+            name: o.name,
+            avatar_url: o.avatar_url,
+            refreshed_at: o.refreshed_at,
+            has_webhook: if ok { has_webhook } else { false },
+            webhook_check_failed: !ok,
+            webhook_last_received_at: cached
+                .get(&o.cc_org_id)
+                .and_then(|c| c.last_received_at),
+        })
+        .collect();
+
+    Ok(Json(views))
+}
+
+async fn setup_webhook(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(cc_org_id): Path<String>,
+) -> Result<Json<WebhookConfig>, AppError> {
+    // Belt-and-braces: refuse if the user doesn't own this org in our cache.
+    // (Without a cached org row, GET /api/orgs hasn't been called yet — call
+    // it first; this also guards against handing a token to an org the user
+    // can't actually access via their own CC token.)
+    let _org = orgs::find_by_user_and_cc_id(&state.db, auth.id, &cc_org_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden)?;
+
+    let cc = CcClient::new(
+        &state.http_client,
+        &state.config,
+        &auth.access_token,
+        &auth.access_secret,
+    );
+
+    // Idempotent: every webhook we have ever created on this org points at
+    // `{public_base_url}/webhooks/cc/{token}`. Wipe anything matching that
+    // prefix before creating a fresh one — bulletproof against orphans from
+    // before this fix shipped, rows where `cc_webhook_id` is NULL, and
+    // duplicates from a double-click.
+    let our_prefix = format!(
+        "{}/webhooks/cc/",
+        state.config.app_url.trim_end_matches('/')
+    );
+    match cc.list_webhooks(&cc_org_id).await {
+        Ok(hooks) => {
+            for hook in hooks {
+                let is_ours = hook.urls.iter().any(|u| u.url.starts_with(&our_prefix));
+                if !is_ours {
+                    continue;
+                }
+                if let Err(e) = cc.delete_webhook(&cc_org_id, &hook.id).await {
+                    tracing::warn!(
+                        error = ?e,
+                        %cc_org_id,
+                        webhook_id = %hook.id,
+                        "failed to delete stale CC webhook; proceeding anyway"
+                    );
+                } else {
+                    tracing::info!(
+                        %cc_org_id,
+                        webhook_id = %hook.id,
+                        "deleted stale CC webhook"
+                    );
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!(
+                error = ?e,
+                %cc_org_id,
+                "failed to list CC webhooks before create; proceeding"
+            );
+        }
+    }
+
+    // 32 random bytes → b64url, 43 chars.
+    let mut bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    let token = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
+
+    let target_url = format!(
+        "{}/webhooks/cc/{}",
+        state.config.app_url.trim_end_matches('/'),
+        token
+    );
+
+    let cc_hook = cc
+        .create_webhook(&cc_org_id, "myprettycloud", &target_url, SUBSCRIBED_EVENTS)
+        .await
+        .map_err(|e| AppError::CcApi(format!("create_webhook: {e}")))?;
+
+    let events: Vec<String> = SUBSCRIBED_EVENTS.iter().map(|s| s.to_string()).collect();
+    let cfg = webhook_configs::create(
+        &state.db,
+        auth.id,
+        &cc_org_id,
+        &token,
+        Some(&cc_hook.id),
+        &events,
+    )
+    .await?;
+
+    Ok(Json(cfg))
+}

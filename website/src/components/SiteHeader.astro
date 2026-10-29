@@ -1,0 +1,92 @@
+---
+interface Props {
+  current?: "docs" | "tutorial" | "releases" | "home";
+}
+const { current = "home" } = Astro.props;
+const APP_URL = "https://myprettycloud-frontend.cleverapps.io";
+---
+
+<nav class="nav-pill" aria-label="Primary">
+  <a class="wordmark nav-pill__brand" href="/">mypretty<em>cloud</em></a>
+  <ul class="nav-pill__links">
+    <li><a href="/docs" aria-current={current === "docs" ? "page" : undefined}>Docs</a></li>
+    <li class="nav-pill__tutorial">
+      <a href="/tutorial" aria-current={current === "tutorial" ? "page" : undefined}>Tutorial</a>
+    </li>
+    <li class="nav-pill__tutorial">
+      <a href="/releases" aria-current={current === "releases" ? "page" : undefined}>Releases</a>
+    </li>
+  </ul>
+  <a class="btn btn--fill nav-pill__cta" href={APP_URL}>Open the app</a>
+</nav>
+
+<style>
+  .nav-pill {
+    position: fixed;
+    inset: var(--space-md) auto auto 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: 0.4rem 0.5rem 0.4rem 1.1rem;
+    background: color-mix(in oklch, var(--color-paper-2) 76%, transparent);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: 999px;
+    box-shadow: 0 8px 24px -12px oklch(5% 0.02 285 / 0.6);
+    z-index: var(--z-sticky);
+    white-space: nowrap;
+  }
+
+  .nav-pill__brand {
+    font-size: var(--text-md);
+    color: var(--color-ink);
+  }
+
+  .nav-pill__links {
+    display: flex;
+    gap: var(--space-md);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav-pill__links a {
+    text-decoration: none;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .nav-pill__links a:hover {
+    color: var(--color-ink);
+  }
+
+  .nav-pill__links a[aria-current="page"] {
+    color: var(--color-accent-bright);
+  }
+
+  .nav-pill__cta {
+    font-size: var(--text-sm);
+    min-height: 36px;
+    padding: 0.35rem 1rem;
+  }
+
+  @media (max-width: 40rem) {
+    .nav-pill {
+      gap: var(--space-md);
+      padding-inline-start: 0.9rem;
+    }
+
+    .nav-pill__tutorial {
+      display: none;
+    }
+
+    .nav-pill__brand {
+      font-size: var(--text-base);
+    }
+  }
+</style>

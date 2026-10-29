@@ -1,0 +1,35 @@
+# Local development dependencies for myprettycloud.
+#   docker compose up -d
+# Postgres backs users/sessions/monitors/rules + the LISTEN/NOTIFY realtime
+# bridge. Pulsar is the durable alerting bus (escalations + webhook inbox);
+# the app boots without it (alerting degrades) but it is here for full parity.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mpc
+      POSTGRES_PASSWORD: mpc
+      POSTGRES_DB: myprettycloud
+    ports:
+      # Host 5433 to avoid clashing with a local host Postgres on 5432.
+      - "5433:5432"
+    volumes:
+      - mpc_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mpc -d myprettycloud"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pulsar:
+    image: apachepulsar/pulsar:3.3.2
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"
+      - "8081:8080"
+    volumes:
+      - mpc_pulsar_data:/pulsar/data
+
+volumes:
+  mpc_pg:
+  mpc_pulsar_data:

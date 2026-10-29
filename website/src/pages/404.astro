@@ -1,0 +1,43 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Page not found · myprettycloud" description="This page does not exist.">
+  <main class="lost container">
+    <p class="lost__code">404</p>
+    <h1>These lands are uncharted.</h1>
+    <p class="lost__hint">
+      The page you asked for isn't on the map. Head back <a href="/">home</a>, browse the
+      <a href="/docs">documentation</a>, or start the <a href="/tutorial">tutorial</a>.
+    </p>
+  </main>
+</BaseLayout>
+
+<style>
+  .lost {
+    min-height: 55dvh;
+    display: grid;
+    align-content: center;
+    gap: var(--space-md);
+    padding-block: 8rem var(--space-3xl);
+    max-width: 40rem;
+  }
+
+  .lost__code {
+    font-family: var(--font-mono);
+    color: var(--color-muted);
+    letter-spacing: 0.2em;
+  }
+
+  .lost h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .lost__hint {
+    color: var(--color-ink-2);
+  }
+
+  .lost__hint a {
+    color: var(--color-accent-bright);
+  }
+</style>

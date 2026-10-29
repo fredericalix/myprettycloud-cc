@@ -1,0 +1,192 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import DocsSidebar from "../components/DocsSidebar.astro";
+import PrevNext from "../components/PrevNext.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  slug: string;
+  currentHref: string;
+}
+const { title, description, slug, currentHref } = Astro.props;
+---
+
+<BaseLayout title={`${title} · myprettycloud docs`} description={description} current="docs">
+  <div class="docs container">
+    <details class="docs__mobile-nav">
+      <summary>Documentation menu</summary>
+      <DocsSidebar currentHref={currentHref} />
+    </details>
+    <aside class="docs__rail">
+      <DocsSidebar currentHref={currentHref} />
+    </aside>
+    <article class="docs__article prose">
+      <h1>{title}</h1>
+      <slot />
+      <PrevNext slug={slug} />
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .docs {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--space-2xl);
+    padding-block: 7.5rem var(--space-3xl);
+  }
+
+  .docs__rail {
+    position: sticky;
+    top: 6.5rem;
+    align-self: start;
+    max-height: calc(100dvh - 8rem);
+    overflow-y: auto;
+    padding-block-end: var(--space-md);
+  }
+
+  .docs__mobile-nav {
+    display: none;
+  }
+
+  .docs__article {
+    max-width: 46rem;
+  }
+
+  .docs__article > h1 {
+    font-size: var(--text-2xl);
+    margin-block-end: var(--space-lg);
+  }
+
+  @media (max-width: 60rem) {
+    .docs {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-lg);
+      padding-block-start: 6rem;
+    }
+
+    .docs__rail {
+      display: none;
+    }
+
+    .docs__mobile-nav {
+      display: block;
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-paper-2);
+    }
+
+    .docs__mobile-nav summary {
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-weight: 600;
+      min-height: 28px;
+    }
+
+    .docs__mobile-nav[open] summary {
+      margin-block-end: var(--space-md);
+    }
+  }
+</style>
+
+<style is:global>
+  .prose {
+    line-height: 1.65;
+    color: var(--color-ink-2);
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3 {
+    color: var(--color-ink);
+  }
+
+  .prose h2 {
+    font-size: var(--text-lg);
+    margin-block: var(--space-xl) var(--space-sm);
+  }
+
+  .prose h3 {
+    font-size: var(--text-md);
+    margin-block: var(--space-lg) var(--space-xs);
+  }
+
+  .prose p,
+  .prose ul,
+  .prose ol {
+    margin-block: var(--space-sm);
+  }
+
+  .prose li {
+    margin-block: var(--space-2xs);
+  }
+
+  .prose a {
+    color: var(--color-accent-bright);
+    text-decoration-color: color-mix(in oklch, var(--color-accent-bright) 45%, transparent);
+  }
+
+  .prose a:hover {
+    text-decoration-color: var(--color-accent-bright);
+  }
+
+  .prose strong {
+    color: var(--color-ink);
+  }
+
+  .prose blockquote {
+    margin: var(--space-lg) 0;
+    padding: var(--space-sm) var(--space-lg);
+    border-inline-start: 2px solid var(--color-copper);
+    background: var(--color-paper-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .prose code {
+    background: var(--color-paper-3);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  .prose pre {
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    overflow-x: auto;
+  }
+
+  .prose pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: var(--space-md);
+    font-size: var(--text-sm);
+  }
+
+  .prose th {
+    text-align: left;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .prose th,
+  .prose td {
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: var(--rule-hair) solid var(--color-rule-2);
+  }
+
+  .prose img {
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    margin-block: var(--space-md);
+  }
+</style>
