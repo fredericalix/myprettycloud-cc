@@ -1,34 +1,35 @@
 # myprettycloud
 
-A unified Clever Cloud observability product. Your infrastructure rendered as a
-living 3D medieval city: every app and add-on is a building whose status and
-metrics drive its visuals. Click a building to open its metrics and to arm
-monitoring rules. Alerts surface as events in the city — fires, bells, smoke.
+Clever Cloud observability, rendered as a living 3D medieval city. Every
+application and add-on of your Clever Cloud organisations is a building whose
+colour, smoke, fire and traffic follow its real status and metrics. Click a
+building for live metric dashboards; arm **workflows** (alerting rules) that ring
+the town bell and notify you on Slack, email, webhooks…
 
-This merges three prototypes into one application:
+- **Hosted instance**: <https://myprettycloud-frontend.cleverapps.io>
+- **User documentation**: <https://myprettycloud-website.cleverapps.io/docs/>
 
-- **mycctown** — the real-time 3D city (the main shell).
-- **myccmetrics** — metric dashboards (charts), reached through a building.
-- **myccmonitor** — the alerting workflow engine + rule editor.
+## Features
 
-## Stack
+- **The city**: a react-three-fiber scene of your apps and add-ons, updated in real
+  time over WebSocket. Medieval and space themes, seasons, a builder mode to lay out
+  your own town, and a mayor who comments on what happens.
+- **Metrics**: per-building dashboards (CPU, memory, disk, network…) from Clever
+  Cloud's Warp10.
+- **Workflows**: a graph-based rule editor. Conditions on monitors trigger
+  notifications (Slack, Discord, email, webhooks…) and city effects.
+- **MCP server**: query and drive your city from an AI assistant (`/mcp`).
 
-- **Backend** — Rust (Axum) Cargo workspace: `crates/core` (library) + `crates/server` (binary).
-- **Frontend** — Next.js 16 + React 19 + Three.js / react-three-fiber (added in milestone M6).
-- **Data** — PostgreSQL, Warp10 (metrics), Apache Pulsar (alerting bus), Clever Cloud API + webhooks.
+## Self-hosting
 
-## Repository layout
+You can run your own instance, locally or in production. Users sign in with their
+own Clever Cloud account.
 
-```
-Cargo.toml          # workspace
-crates/core/        # shared foundation + feature domains + rule engine + MCP
-crates/server/      # thin binary: wiring + serve
-migrations/         # consolidated Postgres schema (M2+)
-frontend/           # Next.js app (M6+)
-docs/               # DEVELOPER_GUIDE.md + USER_MANUAL.md (M12)
-```
+👉 **[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md)**: the complete guide
+(prerequisites, Clever Cloud OAuth consumer, local run, deployment on Clever Cloud
+or any server, environment variables, troubleshooting).
 
-## 3D assets — not included, buy them first
+### 3D assets: not included, buy them first
 
 The city is built from two **KayKit** asset packs by
 [Kay Lousberg](https://www.kaylousberg.com). They are **not** in this repository.
@@ -47,29 +48,59 @@ cd frontend && npm install && npm run assets:install   # reads the zips from ~/D
 Step-by-step guide, production / CDN setup and troubleshooting:
 **[`docs/ASSETS.md`](docs/ASSETS.md)**.
 
-## Development
+### Quick start (local)
+
+Short version of [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) §4. You need Rust
+1.85+, Node 20+, Docker, a [Clever Cloud OAuth consumer](docs/SELF_HOSTING.md#3-create-a-clever-cloud-oauth-consumer)
+with base URL `http://localhost:3000`, and the KayKit archives.
 
 ```bash
-# 1. Infrastructure (Postgres :5433 + Pulsar :6650)
+# 1. Database (PostgreSQL :5433, + optional Pulsar :6650)
 docker compose up -d
 
-# 2. Backend — serves :8080, applies migrations on boot
-cp .env.example .env        # fill ENCRYPTION_KEY + CC OAuth credentials
-cargo run -p myprettycloud-server
-curl localhost:8080/health
+# 2. Backend: set CC_OAUTH_CONSUMER_KEY/SECRET and APP_URL=FRONTEND_URL=http://localhost:3000
+cp .env.example .env
+cargo run -p myprettycloud-server          # :8080, migrations auto-apply
 
-# 3. Frontend — install the 3D assets once (see above), then
+# 3. Frontend (in another terminal)
 cd frontend
 npm install
 npm run assets:install
-npm run dev
+npm run build
+PORT=3000 BACKEND_INTERNAL_URL=http://localhost:8080 npm start
+```
+
+Open <http://localhost:3000> and sign in with Clever Cloud. (`npm run dev` is a
+UI-only dev server, without the backend proxy, so sign-in does not work there.)
+
+## Stack
+
+- **Backend**: Rust (Axum) Cargo workspace. `crates/core` holds the logic (auth,
+  Clever Cloud client, Warp10, realtime hub, poller, rule engine, notifications,
+  MCP); `crates/server` is the binary.
+- **Frontend**: Next.js 16 static export + React 19 + Three.js / react-three-fiber,
+  served by a small Express server (`frontend/server.mjs`) that proxies the API and
+  WebSocket.
+- **Data**: PostgreSQL (state and LISTEN/NOTIFY realtime bridge), Clever Cloud API,
+  Warp10 metrics, optional Apache Pulsar (durable alerting bus).
+
+## Repository layout
+
+```
+crates/core/        # all backend logic (auth, cc, warp10, realtime, poller, rules, mcp, db…)
+crates/server/      # thin binary: wiring + serve
+migrations/         # PostgreSQL schema, applied on boot
+frontend/           # Next.js app (3D city, dashboards, workflow editor) + server.mjs
+website/            # Astro marketing + documentation site
+docs/               # SELF_HOSTING, ASSETS, DEVELOPER_GUIDE, USER_MANUAL
 ```
 
 ## Documentation
 
-- [`docs/ASSETS.md`](docs/ASSETS.md) — buying and installing the KayKit 3D assets.
-- [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md) — how the app is built and how the code works.
-- [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md) — how to use the app (end users).
+- [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md): run your own instance, locally or in production.
+- [`docs/ASSETS.md`](docs/ASSETS.md): buying and installing the KayKit 3D assets.
+- [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md): how the app is built and how the code works.
+- [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md): how to use the app (end users).
 
 ## License
 
@@ -81,19 +112,3 @@ The license covers the code only. The KayKit 3D assets (© Kay Lousberg, distrib
 by their author under CC0), the ambient music and the mayor portraits are **not**
 part of this repository and are **not** covered by it. See
 [`docs/ASSETS.md`](docs/ASSETS.md).
-
-## Status
-
-- **Backend — complete & verified.** Workspace + shared foundation, consolidated
-  migrations + OAuth/sessions, security middleware, Warp10 client + token cache,
-  realtime WS hub + Postgres NOTIFY bridge, unified poller, town maps, the full
-  monitor domain (rule engine + handlers + notifications), webhooks + Pulsar
-  consumers, MCP server, and the metrics dashboard API. Boots against Postgres
-  (+ optional Pulsar); `cargo clippy` clean; unit tests pass.
-- **Frontend — complete & building.** Next.js 16 app: the full react-three-fiber
-  city (live status/metrics animate the buildings), backend reverse-proxy
-  rewrites, auth + login + org selector, Forge design system. Clicking a building
-  opens the **BuildingDrawer**: Overview (live), Metrics (ECharts), and Rules —
-  the When/Then sentinel form, the advanced ReactFlow graph editor, and
-  natural-language authoring (Claude via `/api/rules/generate`). Rule firings
-  ring the bell; failed buildings catch fire.
